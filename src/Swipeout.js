@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import "./styles.css";
+import { useRef, useState, useCallback } from "react";
+import "./swipeout.css";
 
 const Direction = {
   ToLeft: "ToLeft",
@@ -12,13 +12,14 @@ const OpenedSide = {
 };
 
 export default function Swipeout({
-  leftBtnsProps = [1, 2],
-  rightBtnsProps = [3, 4]
+  leftBtnsProps = [],
+  rightBtnsProps = []
 }) {
   const isMoved = useRef(false);
   const isTouched = useRef(false);
   const isScrolling = useRef(undefined);
   const touchStartTime = useRef(0);
+  const swipeoutContainerRef = useRef(null);
   const contentContainerRef = useRef(null);
   const leftBtnsContainerRef = useRef(null);
   const rightBtnsContainerRef = useRef(null);
@@ -31,15 +32,56 @@ export default function Swipeout({
   const [translate, setTranslate] = useState(0);
   const [isOpened, setIsOpened] = useState(false);
 
+  const getBtnTranslate = useCallback((indexFromMiddle, directionFlag, btnsContainerWidth, btnsNum) => {
+    const isOverswipe = btnsContainerWidth < (directionFlag * translate);
+    const btnWidth = 48;
+    const baseOffset = directionFlag * btnWidth * indexFromMiddle;
+    const speedRatio = (btnsNum - indexFromMiddle) / btnsNum
+    const movedDistance = isOverswipe ? translate : (translate * speedRatio + baseOffset);
+    return movedDistance;
+  }, [translate])
+
   const leftBtnsRender = () => {
     return leftBtnsProps.map((btnProp, index) => {
-      return <div className="swipeout-action-btn">{index}</div>;
+      const indexFromMiddle = leftBtnsProps.length - 1 - index;
+      const directionFlag = 1;
+      const btnTranslate = getBtnTranslate(indexFromMiddle, directionFlag, leftBtnsContainerWidth.current, leftBtnsProps.length);
+      const baseColorValue = `${indexFromMiddle * 4}`
+      const color = `#${(new Array(7)).join(baseColorValue)}`
+      return (
+        <div
+          className="swipeout-action-btn"
+          style={{
+            transform: `translate3d(${btnTranslate}px, 0px, 0px)`,
+            background: color,
+            zIndex: indexFromMiddle
+          }}
+        >
+          <div>{btnProp}</div>
+        </div>
+      );
     });
   };
 
   const rightBtnsRender = () => {
     return rightBtnsProps.map((btnProp, index) => {
-      return <div className="swipeout-action-btn">{index}</div>;
+      const indexFromMiddle = index;
+      const directionFlag = -1;
+      const btnTranslate = getBtnTranslate(indexFromMiddle, directionFlag, rightBtnsContainerWidth.current, rightBtnsProps.length);
+      const baseColorValue = `${indexFromMiddle * 4}`
+      const color = `#${(new Array(7)).join(baseColorValue)}`
+      return (
+        <div
+          className="swipeout-action-btn"
+          style={{
+            transform: `translate3d(${btnTranslate}px, 0px, 0px)`,
+            background: color,
+            zIndex: indexFromMiddle
+          }}
+        >
+          <div>{btnProp}</div>
+        </div>
+      );
     });
   };
 
@@ -70,14 +112,13 @@ export default function Swipeout({
       return null;
     }
 
-    console.log("move");
     const pageX = e.targetTouches ? e.targetTouches[0].pageX : e.pageX; // 移动中触摸到的点的 x 坐标位置
     const pageY = e.targetTouches ? e.targetTouches[0].pageY : e.pageY; // 移动中触摸到的点的 y 坐标位置
     if (typeof isScrolling.current === "undefined") {
       isScrolling.current = !!(
         isScrolling.current ||
         Math.abs(pageY - touchesStart.current.y) >
-          Math.abs(pageX - touchesStart.current.x)
+        Math.abs(pageX - touchesStart.current.x)
       );
     }
 
@@ -96,6 +137,8 @@ export default function Swipeout({
         rightBtnsContainerWidth.current =
           rightBtnsContainerRef.current.offsetWidth;
       }
+
+      swipeoutContainerRef.current.classList.remove('swipeout-transitioning');
     }
 
     isMoved.current = true;
@@ -103,18 +146,19 @@ export default function Swipeout({
       e.preventDefault();
     }
 
-    touchesDiff.current = pageX - touchesStart.current.x;
-    let translate = touchesDiff.current;
+    let newTranslate = pageX - touchesStart.current.x;
 
     if (isOpened) {
-      if (openedBtnsSide.current === OpenedSide.Left)
-        translate -= leftBtnsContainerWidth.current;
-      else translate += leftBtnsContainerWidth.current;
+      if (openedBtnsSide.current === OpenedSide.Left) {
+        newTranslate -= leftBtnsContainerWidth.current;
+      } else {
+        newTranslate += leftBtnsContainerWidth.current
+      };
     }
 
     if (
-      (translate > 0 && leftBtnsProps.length === 0) ||
-      (translate < 0 && rightBtnsProps.length === 0)
+      (newTranslate > 0 && leftBtnsProps.length === 0) ||
+      (newTranslate < 0 && rightBtnsProps.length === 0)
     ) {
       if (!isOpened) {
         isTouched.current = false;
@@ -125,33 +169,10 @@ export default function Swipeout({
       translate = 0;
     }
 
-    if (translate < 0) direction.current = Direction.ToLeft;
-    else if (translate > 0) direction.current = Direction.ToRight;
+    if (newTranslate < 0) direction.current = Direction.ToLeft;
+    else if (newTranslate > 0) direction.current = Direction.ToRight;
     else if (!direction.current) direction.current = Direction.ToLeft;
-
-    let buttonOffset = 0;
-    let progress;
-
-    if (rightBtnsProps.length > 0) {
-      // Show right actions
-      let buttonTranslate = translate;
-      progress = buttonTranslate / rightBtnsContainerWidth.current;
-      if (buttonTranslate < -rightBtnsContainerWidth.current) {
-        buttonTranslate =
-          -rightBtnsContainerWidth.current -
-          (-buttonTranslate - rightBtnsContainerWidth.current) ** 0.8;
-        translate = buttonTranslate;
-      }
-
-      if (direction.current !== Direction.ToLeft) {
-        progress = 0;
-        buttonTranslate = 0;
-      }
-      const newTranslate =
-        buttonTranslate - buttonOffset * (1 + Math.max(progress, -1));
-      console.log(newTranslate);
-      setTranslate(newTranslate);
-    }
+    setTranslate(newTranslate);
   };
 
   const onTouchEnd = (e) => {
@@ -166,10 +187,6 @@ export default function Swipeout({
     isTouched.current = false;
     isMoved.current = false;
     const timeDiff = new Date().getTime() - touchStartTime.current;
-    const $actions =
-      direction.current === Direction.ToLeft
-        ? rightBtnsContainerRef
-        : leftBtnsContainerRef;
     const actionsWidth = (direction === Direction.ToLeft
       ? rightBtnsContainerWidth
       : leftBtnsContainerWidth
@@ -179,10 +196,11 @@ export default function Swipeout({
     let $buttons;
     let i;
 
+    // 根据当前的移动方向判断动作是 打开还是关闭
     if (
       (timeDiff < 300 &&
-        ((translate < -10 && direction === Direction.ToLeft) ||
-          (translate > 10 && direction === Direction.ToRight))) ||
+        ((translate < -10 && direction.current === Direction.ToLeft) ||
+          (translate > 10 && direction.current === Direction.ToRight))) ||
       (timeDiff >= 300 && Math.abs(translate) > actionsWidth / 2)
     ) {
       action = "open";
@@ -195,18 +213,44 @@ export default function Swipeout({
       if (Math.abs(translate) === actionsWidth) action = "open";
     }
 
-    // if (action === "open") {
-    // }
+    if (swipeoutContainerRef.current) {
+      swipeoutContainerRef.current.classList.add('swipeout-transitioning')
+    }
 
-    const newTranslate =
-      direction === Direction.ToLeft ? -actionsWidth : actionsWidth;
-    setTranslate(0);
+    if (action === "open") {
+      const newTranslate =
+        direction.current === Direction.ToLeft ? -actionsWidth : actionsWidth;
+      setTranslate(newTranslate);
+      setIsOpened(true)
+      openedBtnsSide.current = direction.current === Direction.ToLeft ? OpenedSide.Left : OpenedSide.Right;
+    } else if (action === 'close') {
+      setTranslate(0);
+      setIsOpened(false)
+    }
   };
+
+  const displayData = () => {
+    const msg = `
+    isMoved: ${isMoved.current}
+    isTouched: ${isTouched.current}
+    isScrolling: ${isScrolling.current}
+    touchStartTime: ${touchStartTime.current}
+    leftBtnsContainerWidth: ${leftBtnsContainerWidth.current}
+    rightBtnsContainerWidth: ${rightBtnsContainerWidth.current}
+    touchesStart: ${touchesStart.current.x}
+    openedBtnsSide: ${openedBtnsSide.current}
+    direction: ${direction.current}
+    touchesDiff: ${touchesDiff.current}
+    translate: ${translate}
+    isOpened: ${isOpened}
+    `
+    console.info(msg);
+  }
 
   return (
     <div>
-      <div>translate: {translate}</div>
-      <div className="swipeout-container">
+      <div><button onClick={displayData}>fresh</button></div>
+      <div className="swipeout-container" ref={swipeoutContainerRef}>
         <div
           ref={contentContainerRef}
           style={{ transform: `translate3d(${translate}px, 0, 0)` }}
@@ -220,12 +264,14 @@ export default function Swipeout({
         ></div>
         <div
           className="swipeout-left-btns-container"
+          style={{ transform: `translate3d(-100%, 0, 0)` }}
           ref={leftBtnsContainerRef}
         >
           {leftBtnsRender()}
         </div>
         <div
           className="swipeout-right-btns-container"
+          style={{ transform: `translate3d(100%, 0, 0)` }}
           ref={rightBtnsContainerRef}
         >
           {rightBtnsRender()}

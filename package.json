@@ -1,8 +1,8 @@
 {
-  "name": "react",
-  "version": "1.0.0",
-  "description": "React example starter project",
-  "keywords": ["react", "starter"],
+  "name": "react-swipeout",
+  "version": "0.0.1",
+  "description": "React swipeout",
+  "keywords": ["react", "swipe"],
   "main": "src/index.js",
   "dependencies": {
     "react": "17.0.2",
