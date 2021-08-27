@@ -1,9 +1,10 @@
 body {
     margin: 0;
+    padding-bottom: 40vh;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .swipeout-container {
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .swipeout-container:not(:last-child){
@@ -15,9 +16,20 @@ body {
     user-select: none;
 }
 
+.label {
+    line-height: 2;
+    padding: 0 12px;
+    background-color: rgb(255, 255, 134);
+}
+
 .bg-red {
     color: white;
     background-color: rgb(228, 27, 27);
+}
+
+.bg-blue {
+    color: white;
+    background-color: rgb(112, 112, 212);
 }
 
 .bg-green {

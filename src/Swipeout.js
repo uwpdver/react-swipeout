@@ -19,7 +19,7 @@ const Action = {
 export default function Swipeout({
     leftBtnsProps = [],
     rightBtnsProps = [],
-    overswipeRatio = 0.5,
+    overswipeRatio = 0.6,
     btnWidth = 72,
     children
 }) {
@@ -43,7 +43,6 @@ export default function Swipeout({
     const openedBtnsSide = useRef(null);
     const direction = useRef(Direction.ToLeft);
 
-    const isOverswipe = overswipeRatio * contentContainerWidth.current < Math.abs(translate)
 
     const getOpenedContainerWidth = () => {
         return (direction.current === Direction.ToLeft
@@ -51,6 +50,8 @@ export default function Swipeout({
             : leftBtnsContainerWidth
         ).current;
     }
+
+    const isOverswipe = Math.abs(translate) > Math.max(overswipeRatio * contentContainerWidth.current, getOpenedContainerWidth())
 
     const getAction = () => {
         const timeDiff = new Date().getTime() - touchStartTime.current;
