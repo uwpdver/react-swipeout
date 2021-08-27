@@ -8,7 +8,7 @@ ReactDOM.render(
     <StrictMode>
         <Swipeout
             leftBtnsProps={[1, 2]}
-            ghtBtnsProps={[3, 4, 5]}
+            rightBtnsProps={[3, 4, 5]}
         />
     </StrictMode>,
     rootElement

@@ -1,0 +1,29 @@
+body {
+    margin: 0;
+}
+
+.swipeout-container {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.swipeout-container:not(:last-child){
+    border-bottom: 1px solid #e4e4e4;
+}
+
+.swipeout-content {
+    padding: 12px;
+    user-select: none;
+}
+
+.bg-red {
+    color: white;
+    background-color: rgb(228, 27, 27);
+}
+
+.bg-green {
+    background-color: green;
+}
+
+.bg-yellow {
+    background-color: wheat;
+}
