@@ -45,35 +45,65 @@ export default function Swipeout({
 
     const isOverswipe = overswipeRatio * contentContainerWidth.current < Math.abs(translate)
 
+    const getOpenedContainerWidth = () => {
+        return (direction.current === Direction.ToLeft
+            ? rightBtnsContainerWidth
+            : leftBtnsContainerWidth
+        ).current;
+    }
+
+    const getAction = () => {
+        const timeDiff = new Date().getTime() - touchStartTime.current;
+        const openedContainerWidth = getOpenedContainerWidth();
+
+        if (timeDiff < 300) {
+            if (
+                (translate < -10 && direction.current === Direction.ToLeft) ||
+                (translate > 10 && direction.current === Direction.ToRight) ||
+                (Math.abs(translate) !== 0)
+            ) {
+                return Action.Open;
+            } else {
+                return Action.Close;
+            }
+        } else {
+            if (Math.abs(translate) > openedContainerWidth / 2) {
+                return Action.Open;
+            } else {
+                return Action.Close;
+            }
+        }
+    }
+
+    const triggerOverswipeBtnClickEvent = () => {
+        let overswipeBtn = openedBtnsSide.current === OpenedSide.Left
+            ? leftBtnsProps[0]
+            : rightBtnsProps[rightBtnsProps.length - 1];
+        if (typeof overswipeBtn.onClick === 'function') {
+            overswipeBtn.onClick();
+        }
+    }
+
+    const openBtnsContainer = () => {
+        if (swipeoutContainerRef.current) {
+            swipeoutContainerRef.current.classList.add('swipeout-transitioning')
+        }
+        const openedContainerWidth = getOpenedContainerWidth();
+        setTranslate(
+            direction.current === Direction.ToLeft
+                ? -openedContainerWidth
+                : openedContainerWidth
+        );
+        setIsOpened(true)
+    }
+
     const closeBtnsContainer = () => {
+        if (swipeoutContainerRef.current) {
+            swipeoutContainerRef.current.classList.add('swipeout-transitioning')
+        }
         setTranslate(0);
         setIsOpened(false);
     }
-
-    const onTouchStart = (e) => {
-        isMoved.current = false;
-        isTouched.current = true;
-        isScrolling.current = undefined;
-
-        console.log('onTouchStart:', onTouchStart);
-
-        touchesStart.current.x = e.targetTouches
-            ? e.targetTouches[0].pageX
-            : e.pageX;
-        touchesStart.current.y = e.targetTouches
-            ? e.targetTouches[0].pageY
-            : e.pageY;
-        touchStartTime.current = new Date().getTime();
-
-        if (leftBtnsContainerRef.current) {
-            leftBtnsContainerWidth.current = leftBtnsContainerRef.current.offsetWidth;
-        }
-
-        if (rightBtnsContainerRef.current) {
-            rightBtnsContainerWidth.current =
-                rightBtnsContainerRef.current.offsetWidth;
-        }
-    };
 
     const initContainerWidth = () => {
         if (leftBtnsProps.length > 0 && leftBtnsContainerRef.current) {
@@ -118,6 +148,29 @@ export default function Swipeout({
         }
         return result;
     }
+
+    const onTouchStart = (e) => {
+        isMoved.current = false;
+        isTouched.current = true;
+        isScrolling.current = undefined;
+
+        touchesStart.current.x = e.targetTouches
+            ? e.targetTouches[0].pageX
+            : e.pageX;
+        touchesStart.current.y = e.targetTouches
+            ? e.targetTouches[0].pageY
+            : e.pageY;
+        touchStartTime.current = new Date().getTime();
+
+        if (leftBtnsContainerRef.current) {
+            leftBtnsContainerWidth.current = leftBtnsContainerRef.current.offsetWidth;
+        }
+
+        if (rightBtnsContainerRef.current) {
+            rightBtnsContainerWidth.current =
+                rightBtnsContainerRef.current.offsetWidth;
+        }
+    };
 
     const onTouchMove = (e) => {
         if (!isTouched.current) {
@@ -167,45 +220,6 @@ export default function Swipeout({
         }
     };
 
-    const getOpenedContainerWidth = () => {
-        return (direction.current === Direction.ToLeft
-            ? rightBtnsContainerWidth
-            : leftBtnsContainerWidth
-        ).current;
-    }
-
-    const getAction = () => {
-        const timeDiff = new Date().getTime() - touchStartTime.current;
-        const openedContainerWidth = getOpenedContainerWidth();
-
-        if (timeDiff < 300) {
-            if (
-                (translate < -10 && direction.current === Direction.ToLeft) ||
-                (translate > 10 && direction.current === Direction.ToRight) ||
-                (Math.abs(translate) !== 0)
-            ) {
-                return Action.Open;
-            } else {
-                return Action.Close;
-            }
-        } else {
-            if (Math.abs(translate) > openedContainerWidth / 2) {
-                return Action.Open;
-            } else {
-                return Action.Close;
-            }
-        }
-    }
-
-    const triggerOverswipeBtnClickEvent = () => {
-        let overswipeBtn = openedBtnsSide.current === OpenedSide.Left
-            ? leftBtnsProps[0]
-            : rightBtnsProps[rightBtnsProps.length - 1];
-        if (typeof overswipeBtn.onClick === 'function') {
-            overswipeBtn.onClick();
-        }
-    }
-
     const onTouchEnd = (e) => {
         if (!isTouched.current || !isMoved.current) {
             isTouched.current = false;
@@ -215,10 +229,6 @@ export default function Swipeout({
 
         isTouched.current = false;
         isMoved.current = false;
-
-        if (swipeoutContainerRef.current) {
-            swipeoutContainerRef.current.classList.add('swipeout-transitioning')
-        }
 
         let action = getAction();
         if (action === Action.Open) {
@@ -230,13 +240,7 @@ export default function Swipeout({
                 triggerOverswipeBtnClickEvent();
                 closeBtnsContainer();
             } else {
-                const openedContainerWidth = getOpenedContainerWidth();
-                setTranslate(
-                    direction.current === Direction.ToLeft
-                        ? -openedContainerWidth
-                        : openedContainerWidth
-                );
-                setIsOpened(true)
+                openBtnsContainer()
             }
         } else if (action === Action.Close) {
             closeBtnsContainer();
